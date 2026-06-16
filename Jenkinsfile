@@ -32,4 +32,10 @@ node {
     }
 
 
+     
+    stage("Cleanup"){
+        sh "docker rmi ${JOB_NAME}:v1.${BUILD_ID}"
+        sh "docker rmi vivekbhardwaj581/${JOB_NAME}:v1.${BUILD_ID}"
+    }
+
 }
