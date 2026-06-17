@@ -13,42 +13,48 @@ node {
         sh "docker build -t ${JOB_NAME}:v1.${BUILD_ID} ."
     }
 
-      stage("Tag Image") {
+
+    stage("Tag Image") {
+
         sh "docker tag ${JOB_NAME}:v1.${BUILD_ID} vivekbhardwaj581/${JOB_NAME}:v1.${BUILD_ID}"
+
         sh "docker tag ${JOB_NAME}:v1.${BUILD_ID} vivekbhardwaj581/${JOB_NAME}:latest"
-    } 
+    }
+
 
     stage("Docker Login") {
-    withCredentials([string(credentialsId: 'dockerhubpassword', variable: 'dockerhubpassword')]) {
-    // some block
-     sh "docker login -u vivekbhardwaj581 -p ${dockerhubpassword}"
-}
+
+        withCredentials([string(credentialsId: 'dockerhubpassword', variable: 'dockerhubpassword')]) {
+
+            sh "docker login -u vivekbhardwaj581 -p ${dockerhubpassword}"
+
+        }
     }
 
-    
-      stage("Push Image on docker hub"){
+
+    stage("Push Image on Docker Hub") {
+
         sh "docker push vivekbhardwaj581/${JOB_NAME}:v1.${BUILD_ID}"
-         sh "docker push vivekbhardwaj581/${JOB_NAME}:latest"
+
+        sh "docker push vivekbhardwaj581/${JOB_NAME}:latest"
     }
 
 
-     
-    stage("Cleanup"){
-        sh "docker rmi ${JOB_NAME}:v1.${BUILD_ID}"
-        sh "docker rmi vivekbhardwaj581/${JOB_NAME}:v1.${BUILD_ID}"
+    stage("Cleanup") {
+
+        sh "docker rmi ${JOB_NAME}:v1.${BUILD_ID} || true"
+
+        sh "docker rmi vivekbhardwaj581/${JOB_NAME}:v1.${BUILD_ID} || true"
     }
 
-   
-stage("Deploy the Container"){
-    sshagent(['jenkinskey']) {
+
+    stage("Deploy on Kubernetes") {
 
         sh '''
-        ssh -o StrictHostKeyChecking=no ec2-user@18.182.53.246 "
-        docker stop webcontainer || true
-        docker rm webcontainer || true
-        docker run -p 8000:80 -itd --name webcontainer vivekbhardwaj581/website
-        "
+        kubectl apply -f deployment.yml
+        kubectl apply -f service.yml
+
+        kubectl rollout restart deployment website-deployment
         '''
     }
-}
 }
